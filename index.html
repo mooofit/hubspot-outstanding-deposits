@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outstanding Deposits Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --font-head: Arial, Helvetica, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+      --transition: 0.2s ease;
+    }
+
+    /* DARK — pure monotone */
+    [data-theme="dark"] {
+      --bg-page:          #0a0a0a;
+      --bg-card:          #141414;
+      --bg-card-alt:      #111111;
+      --bg-row-hover:     #1c1c1c;
+      --bg-thead:         #111111;
+      --bg-input:         #1c1c1c;
+      --border:           #2a2a2a;
+      --border-focus:     #707070;
+      --text-primary:     #f0f0f0;
+      --text-secondary:   #a0a0a0;
+      --text-muted:       #555555;
+      --amount-col:       #4ade80;
+      --amount-rem:       #f87171;
+      --days-col:         #c0c0c0;
+      --stat-collect:     #f87171;
+      --btn-bg:           #1e1e1e;
+      --btn-hover:        #2e2e2e;
+      --btn-border:       #3a3a3a;
+      --divider:          rgba(255,255,255,.05);
+      --shadow-card:      0 4px 24px rgba(0,0,0,.55);
+      --toggle-knob:      #f0f0f0;
+      --toggle-track:     #2a2a2a;
+      --page-active-bg:   #f0f0f0;
+      --page-active-txt:  #0a0a0a;
+      --sort-hi:          #f0f0f0;
+    }
+
+    /* LIGHT — pure monotone */
+    [data-theme="light"] {
+      --bg-page:          #f2f2f2;
+      --bg-card:          #ffffff;
+      --bg-card-alt:      #f8f8f8;
+      --bg-row-hover:     #f4f4f4;
+      --bg-thead:         #f8f8f8;
+      --bg-input:         #ffffff;
+      --border:           #e0e0e0;
+      --border-focus:     #888888;
+      --text-primary:     #111111;
+      --text-secondary:   #444444;
+      --text-muted:       #999999;
+      --amount-col:       #16a34a;
+      --amount-rem:       #dc2626;
+      --days-col:         #222222;
+      --stat-collect:     #dc2626;
+      --btn-bg:           #111111;
+      --btn-hover:        #2a2a2a;
+      --btn-border:       #111111;
+      --divider:          rgba(0,0,0,.05);
+      --shadow-card:      0 2px 16px rgba(0,0,0,.07);
+      --toggle-knob:      #111111;
+      --toggle-track:     #e0e0e0;
+      --page-active-bg:   #111111;
+      --page-active-txt:  #ffffff;
+      --sort-hi:          #111111;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-head);
+      background: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem 2.5rem;
+      transition: background var(--transition), color var(--transition);
+      line-height: 1.5;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; font-family: inherit; }
+
+    .container { max-width: 100%; margin: 0 auto; }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .header-left h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .header-left p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-top: 0.375rem;
+      font-weight: 400;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    /* THEME TOGGLE */
+    .theme-toggle {
+      position: relative;
+      width: 48px; height: 26px;
+      background: var(--toggle-track);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      transition: background var(--transition), border-color var(--transition);
+      flex-shrink: 0;
+    }
+    .theme-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--toggle-knob);
+      transition: transform 0.25s cubic-bezier(.4,0,.2,1), background var(--transition);
+    }
+    [data-theme="light"] .theme-toggle::after { transform: translateX(22px); }
+    .toggle-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    /* REFRESH BUTTON */
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--btn-bg);
+      color: var(--text-primary);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.5rem 1.125rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--btn-border);
+      transition: background var(--transition), transform 0.1s;
+      letter-spacing: 0.01em;
+    }
+    [data-theme="light"] .btn-refresh { color: #ffffff; }
+    .btn-refresh:hover  { background: var(--btn-hover); }
+    .btn-refresh:active { transform: scale(0.97); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* STAT CARDS */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.125rem 1.25rem;
+      box-shadow: var(--shadow-card);
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .stat-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .stat-value {
+      font-size: 1.625rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .skel-val {
+      display: inline-block;
+      width: 60px; height: 28px;
+      background: var(--border);
+      border-radius: 4px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+    /* CONTROLS */
+    .controls {
+      display: flex;
+      gap: 0.625rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .ctrl-input, .ctrl-select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: var(--font-head);
+      font-size: 0.8125rem;
+      padding: 0.5rem 0.875rem;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition);
+      height: 38px;
+    }
+    .ctrl-input { width: 210px; }
+    .ctrl-input::placeholder { color: var(--text-muted); }
+    .ctrl-input:focus, .ctrl-select:focus { border-color: var(--border-focus); }
+    .ctrl-select {
+      padding-right: 2rem; appearance: none; min-width: 160px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+    }
+    .result-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: auto;
+      font-family: var(--font-mono);
+    }
+
+    /* TABLE CARD */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .table-scroll { width: 100%; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      table-layout: auto;
+    }
+    thead tr {
+      background: var(--bg-thead);
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      padding: 0.875rem 1rem;
+      text-align: left;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+      user-select: none;
+      transition: color var(--transition);
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { color: var(--text-secondary); }
+    th.sort-asc::after  { content: ' ↑'; color: var(--sort-hi); }
+    th.sort-desc::after { content: ' ↓'; color: var(--sort-hi); }
+    th.align-right { text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--divider);
+      transition: background var(--transition);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-row-hover); }
+
+    td {
+      padding: 0.875rem 1rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    td.align-right { text-align: right; }
+
+    /* CELL TYPES */
+    .cell-deal  { font-weight: 600; color: var(--text-primary); }
+    .cell-cons  { color: var(--text-secondary); }
+    .cell-prod  { color: var(--text-primary); font-size: 0.8125rem; }
+    .cell-dep   { color: var(--amount-col); font-weight: 600; font-family: var(--font-mono); font-size: 0.8125rem; }
+    .cell-rem   { color: var(--amount-rem); font-family: var(--font-mono); font-size: 0.8125rem; }
+    .cell-date  { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    .cell-days  { color: var(--days-col); font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; }
+
+    /* SKELETON */
+    .state-row td { padding: 3rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+    .state-row.error td { color: #888; }
+    .skel { height: 14px; border-radius: 4px; background: var(--border); animation: pulse 1.4s ease-in-out infinite; }
+
+    /* PAGINATION */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .page-btns { display: flex; gap: 0.375rem; }
+    .page-btn {
+      background: var(--bg-card-alt, var(--bg-card));
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      padding: 0.3rem 0.7rem;
+      font-size: 0.75rem;
+      font-family: var(--font-head);
+      transition: background var(--transition), border-color var(--transition), color var(--transition);
+    }
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--text-secondary);
+      color: var(--text-primary);
+    }
+    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .page-btn.active {
+      background: var(--page-active-bg);
+      color: var(--page-active-txt);
+      border-color: var(--page-active-bg);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Outstanding Deposits Tracker</h1>
+      <p>Real-time aggregated deal pipelines and contract balances · Today: <span id="today-date"></span></p>
+    </div>
+    <div class="header-right">
+      <span class="toggle-label" id="theme-label">Dark</span>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+      <button class="btn-refresh" id="btn-refresh" onclick="loadData()">
+        <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M8 16H3v5"/>
+        </svg>
+        Refresh Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card"><div class="stat-label">Total Deals</div><div class="stat-value" id="s-total"><span class="skel-val"></span></div></div>
+    <div class="stat-card"><div class="stat-label">Avg. Outstanding Days</div><div class="stat-value" id="s-avg"><span class="skel-val"></span></div></div>
+    <div class="stat-card"><div class="stat-label">Longest Pending</div><div class="stat-value" id="s-max"><span class="skel-val"></span></div></div>
+    <div class="stat-card"><div class="stat-label">Total Collectables</div><div class="stat-value" id="s-collect" style="font-size:1.25rem; color: var(--stat-collect)"><span class="skel-val"></span></div></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <input  class="ctrl-input"  id="search"           type="text" placeholder="🔍  Search deal or client..." oninput="onFilter()">
+    <select class="ctrl-select" id="consultant-filter" onchange="onFilter()"><option value="">All consultants</option></select>
+    <select class="ctrl-select" id="product-filter"    onchange="onFilter()"><option value="">All products</option></select>
+    <select class="ctrl-select" id="status-filter"     onchange="onFilter()">
+      <option value="">All statuses</option>
+      <option value="low">0–14 days</option>
+      <option value="mid">15–30 days</option>
+      <option value="high">31+ days</option>
+    </select>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" data-col="Deal Name"                onclick="sortBy('Deal Name')">Linked Deal Name</th>
+            <th class="sortable" data-col="Consultant ID"            onclick="sortBy('Consultant ID')">Consultant</th>
+            <th class="sortable" data-col="Product Name"             onclick="sortBy('Product Name')">Product Name</th>
+            <th class="sortable align-right" data-col="Total Deposit Amount"   onclick="sortBy('Total Deposit Amount')">Total Deposit Sum</th>
+            <th class="sortable align-right" data-col="Remaining Collectables" onclick="sortBy('Remaining Collectables')">Remaining Collectables</th>
+            <th class="sortable" data-col="First Deposit Date"       onclick="sortBy('First Deposit Date')">First Deposit Date</th>
+            <th class="sortable align-right" data-col="No. of Outstanding Days" onclick="sortBy('No. of Outstanding Days')">Outstanding Days</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr class="skeleton-row"><td><div class="skel" style="width:200px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:180px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skel" style="width:220px"></div></td><td><div class="skel" style="width:100px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
+          <tr class="skeleton-row"><td><div class="skel" style="width:180px"></div></td><td><div class="skel" style="width:120px"></div></td><td><div class="skel" style="width:200px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="page-info">—</span>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL      = "https://vmsuhnqeasqgubzelqpf.supabase.co/";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3VobnFlYXNxZ3ViemVscXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2NjY5MjMsImV4cCI6MjA2MjI0MjkyM30.2CcANeucothewAINNUeg5tAH3xvOpSRL64gER-0PG_8";
+
+const CONSULTANT_MAP = {
+  "76656324":"Komy Ko","78857663":"Emily Lin","80726806":"Sylvia Cheng",
+  "80997207":"Ted Lam","81332788":"Tommy LAM","81563086":"John Mok",
+  "82234146":"Jacky Lam","84323524":"Sania Chan","84486677":"Robbie Fong",
+  "84846273":"Michelle Chan","90313683":"Timothy So","90313684":"Maverick Lee",
+  "90313685":"Jerry Lai","91793985":"Mandy Wu","92506173":"Eureka Kao",
+  "160171234":"Keynes Chen","324430222":"Fei Cheung","405517127":"Angus Tang",
+  "429060519":"Eppie Chan","430865950":"Junwai Chew","430919726":"Derek Ngai",
+  "430919728":"Casey Lee","430919729":"Eugenia Chan","431806033":"Edward Tang",
+  "449834525":"Daisy Ma","452867480":"BCM Team","458641999":"Stanley Lee",
+  "469451036":"Shirley Chan","470019096":"Cindy Lam","475993735":"Dabbie Chan",
+  "482029656":"Brian Cha","482991127":"Angela Lee","528710970":"Shan Ngai",
+  "528710971":"SiuFa Wong","535819034":"Adeline Lam","649444397":"Arila Chong",
+  "840333365":"Cynthia Tan","971644538":"Howard Yu","1160441906":"Raiman CHENG",
+  "1518489478":"Mayyoke Chan","1869110085":"Mooofit","2020327378":"Henry Tang",
+  "2068205481":"Man Lui","2079295857":"Echo Li","2101663297":"Darren Chan",
+  "2125946242":"tszchun.cheng@briancha.com"
+};
+
+const PAGE_SIZE = 15;
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let allData  = [];
+let filtered = [];
+let sortCol  = "No. of Outstanding Days";
+let sortDir  = "desc";
+let currentPg = 0;
+
+document.getElementById("today-date").textContent =
+  new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
+
+/* THEME */
+function toggleTheme() {
+  const html  = document.documentElement;
+  const isDark = html.getAttribute("data-theme") === "dark";
+  html.setAttribute("data-theme", isDark ? "light" : "dark");
+  document.getElementById("theme-label").textContent = isDark ? "Light" : "Dark";
+  localStorage.setItem("bcm-theme", isDark ? "light" : "dark");
+}
+(function () {
+  const saved = localStorage.getItem("bcm-theme");
+  if (saved === "light") {
+    document.documentElement.setAttribute("data-theme", "light");
+    const lbl = document.getElementById("theme-label");
+    if (lbl) lbl.textContent = "Light";
+  }
+})();
+
+/* HELPERS */
+function getConsultant(raw) {
+  if (!raw) return "Unassigned";
+  const clean = String(raw).replace("ID:","").trim();
+  return CONSULTANT_MAP[clean] || "Deactivated/Removed";
+}
+function fmtMoney(v) {
+  const n = Number(v || 0);
+  return n >= 1000000 ? "$"+(n/1000000).toFixed(2)+"M" : "$"+n.toLocaleString();
+}
+function escHtml(str) {
+  return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* DATA */
+async function loadData() {
+  const btn  = document.getElementById("btn-refresh");
+  const icon = document.getElementById("refresh-icon");
+  icon.style.animation = "spin 0.8s linear infinite";
+  try {
+    const { data, error } = await sb
+      .from("dashboard_outstanding_deals_summary")
+      .select('"Deal ID","Deal Name","Consultant ID","Product Name","Total Deposit Amount","Remaining Collectables","First Deposit Date","No. of Outstanding Days"')
+      .order('"No. of Outstanding Days"', { ascending: false });
+    if (error) throw error;
+    allData = data || [];
+    buildFilterOptions();
+    applyFilters();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    document.getElementById("table-body").innerHTML =
+      `<tr class="state-row error"><td colspan="7">Database error: ${escHtml(err.message)}</td></tr>`;
+  } finally {
+    icon.style.animation = "";
+  }
+}
+
+/* FILTERS */
+function buildFilterOptions() {
+  const consSet = new Set(), prodSet = new Set();
+  allData.forEach(d => {
+    if (d["Consultant ID"]) consSet.add(d["Consultant ID"]);
+    if (d["Product Name"])  prodSet.add(d["Product Name"]);
+  });
+  const cf = document.getElementById("consultant-filter");
+  cf.innerHTML = '<option value="">All consultants</option>';
+  [...consSet].sort((a,b) => getConsultant(a).localeCompare(getConsultant(b))).forEach(id => {
+    const o = document.createElement("option"); o.value = id; o.textContent = getConsultant(id); cf.appendChild(o);
+  });
+  const pf = document.getElementById("product-filter");
+  pf.innerHTML = '<option value="">All products</option>';
+  [...prodSet].sort().forEach(p => {
+    const o = document.createElement("option"); o.value = p; o.textContent = p; pf.appendChild(o);
+  });
+}
+
+function onFilter() { currentPg = 0; applyFilters(); }
+
+function applyFilters() {
+  const q   = document.getElementById("search").value.toLowerCase();
+  const cid = document.getElementById("consultant-filter").value;
+  const prd = document.getElementById("product-filter").value;
+  const sts = document.getElementById("status-filter").value;
+  filtered = allData.filter(d => {
+    const name = (d["Deal Name"]||"").toLowerCase();
+    if (q   && !name.includes(q)) return false;
+    if (cid && d["Consultant ID"] !== cid) return false;
+    if (prd && d["Product Name"]  !== prd) return false;
+    if (sts) {
+      const days = d["No. of Outstanding Days"] ?? null;
+      if (sts === "low"  && !(days !== null && days <= 14)) return false;
+      if (sts === "mid"  && !(days !== null && days >= 15 && days <= 30)) return false;
+      if (sts === "high" && !(days !== null && days >= 31)) return false;
+    }
+    return true;
+  });
+  sortData();
+  renderTable();
+}
+
+/* SORT */
+function sortBy(col) {
+  if (sortCol === col) { sortDir = sortDir === "asc" ? "desc" : "asc"; }
+  else { sortCol = col; sortDir = ["No. of Outstanding Days","Total Deposit Amount","Remaining Collectables"].includes(col) ? "desc" : "asc"; }
+  currentPg = 0; sortData(); renderTable();
+}
+function sortData() {
+  filtered.sort((a,b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (sortCol === "Consultant ID") { av = getConsultant(av); bv = getConsultant(bv); }
+    if (av == null) return 1; if (bv == null) return -1;
+    const na = parseFloat(av), nb = parseFloat(bv);
+    let cmp = (!isNaN(na) && !isNaN(nb)) ? na - nb : String(av).localeCompare(String(bv));
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+  document.querySelectorAll("th[data-col]").forEach(th => {
+    th.classList.remove("sort-asc","sort-desc");
+    if (th.dataset.col === sortCol) th.classList.add(sortDir === "asc" ? "sort-asc" : "sort-desc");
+  });
+}
+
+/* STATS */
+function updateStats() {
+  const days = allData.map(d => d["No. of Outstanding Days"]).filter(x => x != null);
+  const cols = allData.map(d => Number(d["Remaining Collectables"]||0));
+  document.getElementById("s-total").textContent   = allData.length;
+  document.getElementById("s-avg").textContent      = days.length ? Math.round(days.reduce((a,b)=>a+b,0)/days.length)+"d" : "—";
+  document.getElementById("s-max").textContent      = days.length ? Math.max(...days)+"d" : "—";
+  const t = cols.reduce((a,b)=>a+b,0);
+  document.getElementById("s-collect").textContent  = t >= 1000000 ? "$"+(t/1000000).toFixed(2)+"M" : fmtMoney(t);
+}
+
+/* RENDER */
+function renderTable() {
+  const tbody = document.getElementById("table-body");
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPg >= pages) currentPg = pages - 1;
+  document.getElementById("result-count").textContent = total + " record" + (total !== 1 ? "s" : "");
+  if (!total) {
+    tbody.innerHTML = `<tr class="state-row"><td colspan="7">No matching records found.</td></tr>`;
+    renderPagination(0,0,0); return;
+  }
+  const start = currentPg * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+  tbody.innerHTML = slice.map(d => {
+    const name = escHtml(d["Deal Name"]||"—");
+    const cons = getConsultant(d["Consultant ID"]);
+    const prod = escHtml(d["Product Name"]||"Standard");
+    const dep  = fmtMoney(d["Total Deposit Amount"]);
+    const rem  = fmtMoney(d["Remaining Collectables"]);
+    const date = d["First Deposit Date"] || "N/A";
+    const days = d["No. of Outstanding Days"];
+    const dTxt = days != null ? days + "d" : "—";
+    return `<tr>
+      <td class="cell-deal" title="${name}">${name}</td>
+      <td class="cell-cons">${escHtml(cons)}</td>
+      <td class="cell-prod">${prod}</td>
+      <td class="align-right cell-dep">${dep}</td>
+      <td class="align-right cell-rem">${rem}</td>
+      <td class="cell-date">${escHtml(date)}</td>
+      <td class="align-right cell-days">${dTxt}</td>
+    </tr>`;
+  }).join("");
+  renderPagination(total, start+1, Math.min(start+PAGE_SIZE, total));
+}
+
+function renderPagination(total, from, to) {
+  document.getElementById("page-info").textContent =
+    total ? `Showing ${from}–${to} of ${total} records` : "No records";
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const btns  = document.getElementById("page-btns");
+  if (pages <= 1) { btns.innerHTML = ""; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPg-1})" ${currentPg===0?"disabled":""}>← Prev</button>`;
+  const lo = Math.max(0, currentPg-2), hi = Math.min(pages-1, currentPg+2);
+  for (let i = lo; i <= hi; i++) {
+    html += `<button class="page-btn ${i===currentPg?"active":""}" onclick="goPage(${i})">${i+1}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPg+1})" ${currentPg>=pages-1?"disabled":""}>Next →</button>`;
+  btns.innerHTML = html;
+}
+
+function goPage(p) { currentPg = p; renderTable(); }
+
+document.addEventListener("DOMContentLoaded", loadData);
+</script>
+</body>
+</html>
