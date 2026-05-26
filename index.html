@@ -344,12 +344,104 @@
       border-color: var(--page-active-bg);
       font-weight: 600;
     }
+
+    /* AUTH SECURITY CONTAINER OVERLAYS */
+    .auth-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 2.5rem;
+      max-width: 420px;
+      margin: 4rem auto;
+      box-shadow: var(--shadow-card);
+      text-align: center;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .auth-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .auth-subtitle {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2rem;
+    }
+    .auth-field-label {
+      text-align: left;
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .auth-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      padding: 0.6875rem 0.875rem;
+      font-size: 0.8125rem;
+      outline: none;
+      margin-bottom: 1.25rem;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .auth-input:focus {
+      border-color: var(--border-focus);
+    }
+    .auth-btn {
+      width: 100%;
+      background: var(--text-primary);
+      color: var(--bg-page);
+      border: none;
+      padding: 0.6875rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: opacity var(--transition);
+    }
+    [data-theme="light"] .auth-btn {
+      background: #111111;
+      color: #ffffff;
+    }
+    .auth-btn:hover {
+      opacity: 0.9;
+    }
+    .auth-feedback {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      margin-top: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .logout-action-btn {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      transition: color var(--transition);
+    }
+    .logout-action-btn:hover {
+      color: var(--text-primary);
+    }
   </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- HEADER -->
   <div class="header">
     <div class="header-left">
       <h1>Outstanding Deposits Tracker</h1>
@@ -358,7 +450,7 @@
     <div class="header-right">
       <span class="toggle-label" id="theme-label">Dark</span>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"></button>
-      <button class="btn-refresh" id="btn-refresh" onclick="loadData()">
+      <button class="btn-refresh" id="btn-refresh" onclick="loadData()" style="display: none;">
         <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
           <path d="M21 3v5h-5"/>
@@ -367,56 +459,72 @@
         </svg>
         Refresh Dashboard
       </button>
+      <button class="logout-action-btn" id="btn-logout" onclick="handleLogout()" style="display: none;">
+        Logout
+      </button>
     </div>
   </div>
 
-  <!-- STATS -->
-  <div class="stats">
-    <div class="stat-card"><div class="stat-label">Total Deals</div><div class="stat-value" id="s-total"><span class="skel-val"></span></div></div>
-    <div class="stat-card"><div class="stat-label">Avg. Outstanding Days</div><div class="stat-value" id="s-avg"><span class="skel-val"></span></div></div>
-    <div class="stat-card"><div class="stat-label">Longest Pending</div><div class="stat-value" id="s-max"><span class="skel-val"></span></div></div>
-    <div class="stat-card"><div class="stat-label">Total Collectables</div><div class="stat-value" id="s-collect" style="font-size:1.25rem; color: var(--stat-collect)"><span class="skel-val"></span></div></div>
-  </div>
-
-  <!-- CONTROLS -->
-  <div class="controls">
-    <input  class="ctrl-input"  id="search"           type="text" placeholder="🔍  Search deal or client..." oninput="onFilter()">
-    <select class="ctrl-select" id="consultant-filter" onchange="onFilter()"><option value="">All consultants</option></select>
-    <select class="ctrl-select" id="product-filter"    onchange="onFilter()"><option value="">All products</option></select>
-    <select class="ctrl-select" id="status-filter"     onchange="onFilter()">
-      <option value="">All statuses</option>
-      <option value="low">0–14 days</option>
-      <option value="mid">15–30 days</option>
-      <option value="high">31+ days</option>
-    </select>
-    <span class="result-count" id="result-count"></span>
-  </div>
-
-  <!-- TABLE -->
-  <div class="table-card">
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th class="sortable" data-col="Deal Name"                onclick="sortBy('Deal Name')">Linked Deal Name</th>
-            <th class="sortable" data-col="Consultant ID"            onclick="sortBy('Consultant ID')">Consultant</th>
-            <th class="sortable" data-col="Product Name"             onclick="sortBy('Product Name')">Product Name</th>
-            <th class="sortable align-right" data-col="Total Deposit Amount"   onclick="sortBy('Total Deposit Amount')">Total Deposit Sum</th>
-            <th class="sortable align-right" data-col="Remaining Collectables" onclick="sortBy('Remaining Collectables')">Remaining Collectables</th>
-            <th class="sortable" data-col="First Deposit Date"       onclick="sortBy('First Deposit Date')">First Deposit Date</th>
-            <th class="sortable align-right" data-col="No. of Outstanding Days" onclick="sortBy('No. of Outstanding Days')">Outstanding Days</th>
-          </tr>
-        </thead>
-        <tbody id="table-body">
-          <tr class="skeleton-row"><td><div class="skel" style="width:200px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:180px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
-          <tr class="skeleton-row"><td><div class="skel" style="width:220px"></div></td><td><div class="skel" style="width:100px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
-          <tr class="skeleton-row"><td><div class="skel" style="width:180px"></div></td><td><div class="skel" style="width:120px"></div></td><td><div class="skel" style="width:200px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
-        </tbody>
-      </table>
+  <div id="auth-view" style="display: none;">
+    <div class="auth-panel">
+      <h2 class="auth-title">Single Sign-On</h2>
+      <p class="auth-subtitle">Authorized Corporate Access Only</p>
+      
+      <div>
+        <label class="auth-field-label">Corporate Email Address</label>
+        <input type="email" id="email-input" placeholder="name@briancha.com / @heroladies.com / @mooofit.com" class="auth-input">
+        <button onclick="handleLogin()" id="login-btn" class="auth-btn">Request Secure Access Link</button>
+      </div>
+      <div id="auth-feedback" class="auth-feedback"></div>
     </div>
-    <div class="pagination">
-      <span id="page-info">—</span>
-      <div class="page-btns" id="page-btns"></div>
+  </div>
+
+  <div id="dashboard-view" style="display: none;">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-label">Total Deals</div><div class="stat-value" id="s-total"><span class="skel-val"></span></div></div>
+      <div class="stat-card"><div class="stat-label">Avg. Outstanding Days</div><div class="stat-value" id="s-avg"><span class="skel-val"></span></div></div>
+      <div class="stat-card"><div class="stat-label">Longest Pending</div><div class="stat-value" id="s-max"><span class="skel-val"></span></div></div>
+      <div class="stat-card"><div class="stat-label">Total Collectables</div><div class="stat-value" id="s-collect" style="font-size:1.25rem; color: var(--stat-collect)"><span class="skel-val"></span></div></div>
+    </div>
+
+    <div class="controls">
+      <input  class="ctrl-input"  id="search"           type="text" placeholder="🔍  Search deal or client..." oninput="onFilter()">
+      <select class="ctrl-select" id="consultant-filter" onchange="onFilter()"><option value="">All consultants</option></select>
+      <select class="ctrl-select" id="product-filter"    onchange="onFilter()"><option value="">All products</option></select>
+      <select class="ctrl-select" id="status-filter"     onchange="onFilter()">
+        <option value="">All statuses</option>
+        <option value="low">0–14 days</option>
+        <option value="mid">15–30 days</option>
+        <option value="high">31+ days</option>
+      </select>
+      <span class="result-count" id="result-count"></span>
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-col="Deal Name"                onclick="sortBy('Deal Name')">Linked Deal Name</th>
+              <th class="sortable" data-col="Consultant ID"            onclick="sortBy('Consultant ID')">Consultant</th>
+              <th class="sortable" data-col="Product Name"             onclick="sortBy('Product Name')">Product Name</th>
+              <th class="sortable align-right" data-col="Total Deposit Amount"   onclick="sortBy('Total Deposit Amount')">Total Deposit Sum</th>
+              <th class="sortable align-right" data-col="Remaining Collectables" onclick="sortBy('Remaining Collectables')">Remaining Collectables</th>
+              <th class="sortable" data-col="First Deposit Date"       onclick="sortBy('First Deposit Date')">First Deposit Date</th>
+              <th class="sortable align-right" data-col="No. of Outstanding Days" onclick="sortBy('No. of Outstanding Days')">Outstanding Days</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr class="skeleton-row"><td><div class="skel" style="width:200px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:180px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:220px"></div></td><td><div class="skel" style="width:100px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:180px"></div></td><td><div class="skel" style="width:120px"></div></td><td><div class="skel" style="width:200px"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:80px;margin-left:auto"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:50px;margin-left:auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="page-info">—</span>
+        <div class="page-btns" id="page-btns"></div>
+      </div>
     </div>
   </div>
 
@@ -425,6 +533,8 @@
 <script>
 const SUPABASE_URL      = "https://vmsuhnqeasqgubzelqpf.supabase.co/";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3VobnFlYXNxZ3ViemVscXBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2NjY5MjMsImV4cCI6MjA2MjI0MjkyM30.2CcANeucothewAINNUeg5tAH3xvOpSRL64gER-0PG_8";
+
+const APPROVED_DOMAINS = ["briancha.com", "heroladies.com", "mooofit.com"];
 
 const CONSULTANT_MAP = {
   "76656324":"Komy Ko","78857663":"Emily Lin","80726806":"Sylvia Cheng",
@@ -457,7 +567,7 @@ let currentPg = 0;
 document.getElementById("today-date").textContent =
   new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
 
-/* THEME */
+/* THEME CONTROL DESIGN BLOCK */
 function toggleTheme() {
   const html  = document.documentElement;
   const isDark = html.getAttribute("data-theme") === "dark";
@@ -473,6 +583,73 @@ function toggleTheme() {
     if (lbl) lbl.textContent = "Light";
   }
 })();
+
+/* ACCESS CONTROL AUTH SEQUENCER */
+sb.auth.onAuthStateChange((event, session) => {
+  const authView = document.getElementById("auth-view");
+  const dashboardView = document.getElementById("dashboard-view");
+  const refreshBtn = document.getElementById("btn-refresh");
+  const logoutBtn = document.getElementById("btn-logout");
+
+  if (session) {
+    authView.style.display = "none";
+    dashboardView.style.display = "block";
+    refreshBtn.style.display = "inline-flex";
+    logoutBtn.style.display = "inline-flex";
+    loadData();
+  } else {
+    dashboardView.style.display = "none";
+    refreshBtn.style.display = "none";
+    logoutBtn.style.display = "none";
+    authView.style.display = "block";
+    clearFeedback();
+  }
+});
+
+async function handleLogin() {
+  const email = document.getElementById("email-input").value.trim();
+  const feedback = document.getElementById("auth-feedback");
+  
+  if (!email) {
+    feedback.style.color = "var(--amount-rem)";
+    feedback.textContent = "Email address required.";
+    return;
+  }
+
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!APPROVED_DOMAINS.includes(domain)) {
+    feedback.style.color = "var(--amount-rem)";
+    feedback.textContent = "Unauthorized access domain.";
+    return;
+  }
+
+  feedback.style.color = "var(--text-secondary)";
+  feedback.textContent = "Processing authorization link...";
+
+  const { error } = await sb.auth.signInWithOtp({
+    email: email,
+    options: { redirectTo: window.location.href }
+  });
+
+  if (error) {
+    feedback.style.color = "var(--amount-rem)";
+    feedback.textContent = `Error: ${error.message}`;
+  } else {
+    feedback.style.color = "var(--amount-col)";
+    feedback.textContent = "Verification link routed to inbox.";
+  }
+}
+
+async function handleLogout() {
+  await sb.auth.signOut();
+}
+
+function clearFeedback() {
+  const fb = document.getElementById("auth-feedback");
+  if (fb) fb.textContent = "";
+  const input = document.getElementById("email-input");
+  if (input) input.value = "";
+}
 
 /* HELPERS */
 function getConsultant(raw) {
@@ -492,7 +669,7 @@ function escHtml(str) {
 async function loadData() {
   const btn  = document.getElementById("btn-refresh");
   const icon = document.getElementById("refresh-icon");
-  icon.style.animation = "spin 0.8s linear infinite";
+  if (icon) icon.style.animation = "spin 0.8s linear infinite";
   try {
     const { data, error } = await sb
       .from("dashboard_outstanding_deals_summary")
@@ -508,7 +685,7 @@ async function loadData() {
     document.getElementById("table-body").innerHTML =
       `<tr class="state-row error"><td colspan="7">Database error: ${escHtml(err.message)}</td></tr>`;
   } finally {
-    icon.style.animation = "";
+    if (icon) icon.style.animation = "";
   }
 }
 
@@ -638,8 +815,6 @@ function renderPagination(total, from, to) {
 }
 
 function goPage(p) { currentPg = p; renderTable(); }
-
-document.addEventListener("DOMContentLoaded", loadData);
 </script>
 </body>
 </html>
