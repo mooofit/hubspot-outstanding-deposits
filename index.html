@@ -35,6 +35,9 @@
       --amount-col:       #4ade80;
       --amount-rem:       #f87171;
       --days-col:         #e0e0e0;
+      --days-low:         #4ade80;
+      --days-mid:         #fb923c;
+      --days-high:        #f87171;
       --stat-collect:     #f87171;
       --btn-bg:           #1e1e1e;
       --btn-hover:        #303030;
@@ -64,6 +67,9 @@
       --amount-col:       #16a34a;
       --amount-rem:       #dc2626;
       --days-col:         #222222;
+      --days-low:         #16a34a;
+      --days-mid:         #ea580c;
+      --days-high:        #dc2626;
       --stat-collect:     #dc2626;
       --btn-bg:           #111111;
       --btn-hover:        #2a2a2a;
@@ -330,6 +336,9 @@
     .cell-rem   { color: var(--amount-rem); font-family: var(--font-mono); font-size: 0.8125rem; }
     .cell-date  { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; }
     .cell-days  { color: var(--days-col); font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; }
+    .cell-days.days-low { color: var(--days-low); }
+    .cell-days.days-mid { color: var(--days-mid); }
+    .cell-days.days-high { color: var(--days-high); }
 
     /* SKELETON */
     .state-row td { padding: 3rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
@@ -808,6 +817,7 @@ function renderTable() {
     const date = d["First Deposit Date"] || "N/A";
     const days = d["No. of Outstanding Days"];
     const dTxt = days != null ? days + "d" : "—";
+    const dayClass = days == null ? "" : days <= 14 ? " days-low" : days <= 31 ? " days-mid" : " days-high";
     return `<tr>
       <td class="cell-deal" title="${name}">${name}</td>
       <td class="cell-cons">${escHtml(cons)}</td>
@@ -815,7 +825,7 @@ function renderTable() {
       <td class="align-right cell-dep">${dep}</td>
       <td class="align-right cell-rem">${rem}</td>
       <td class="cell-date">${escHtml(date)}</td>
-      <td class="align-right cell-days">${dTxt}</td>
+      <td class="align-right cell-days${dayClass}">${dTxt}</td>
     </tr>`;
   }).join("");
   renderPagination(total, start+1, Math.min(start+PAGE_SIZE, total));
