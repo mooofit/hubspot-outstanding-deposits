@@ -1,9 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Outstanding Deposits Dashboard</title>
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem("bcm-theme");
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", savedTheme || systemTheme);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -39,9 +46,9 @@
       --days-mid:         #fb923c;
       --days-high:        #f87171;
       --stat-collect:     #f87171;
-      --btn-bg:           #1e1e1e;
-      --btn-hover:        #303030;
-      --btn-border:       #4a4a4a;
+      --btn-bg:           #f7f7f7;
+      --btn-hover:        #e6e6e6;
+      --btn-border:       #f7f7f7;
       --divider:          rgba(255,255,255,.09);
       --shadow-card:      0 4px 24px rgba(0,0,0,.55);
       --toggle-knob:      #f0f0f0;
@@ -172,6 +179,7 @@
       transition: background var(--transition), transform 0.1s;
       letter-spacing: 0.01em;
     }
+    [data-theme="dark"] .btn-refresh { color: #0a0a0a; }
     [data-theme="light"] .btn-refresh { color: #ffffff; }
     .btn-refresh:hover  { background: var(--btn-hover); }
     .btn-refresh:active { transform: scale(0.97); }
@@ -607,12 +615,9 @@ function toggleTheme() {
   localStorage.setItem("bcm-theme", isDark ? "light" : "dark");
 }
 (function () {
-  const saved = localStorage.getItem("bcm-theme");
-  if (saved === "light") {
-    document.documentElement.setAttribute("data-theme", "light");
-    const lbl = document.getElementById("theme-label");
-    if (lbl) lbl.textContent = "Light";
-  }
+  const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+  const lbl = document.getElementById("theme-label");
+  if (lbl) lbl.textContent = currentTheme === "dark" ? "Dark" : "Light";
 })();
 
 /* AUTH ENGINE STATE MANAGER */
