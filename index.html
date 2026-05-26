@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Outstanding Deposits Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --font-head: Arial, Helvetica, sans-serif;
+      --font-inter: 'Inter', Arial, Helvetica, sans-serif;
       --font-mono: 'IBM Plex Mono', monospace;
       --radius-sm: 6px;
       --radius-md: 10px;
@@ -18,30 +19,30 @@
       --transition: 0.2s ease;
     }
 
-    /* DARK — pure monotone */
+    /* DARK — high-contrast monotone */
     [data-theme="dark"] {
       --bg-page:          #0a0a0a;
-      --bg-card:          #141414;
-      --bg-card-alt:      #111111;
-      --bg-row-hover:     #1c1c1c;
-      --bg-thead:         #111111;
+      --bg-card:          #151515;
+      --bg-card-alt:      #181818;
+      --bg-row-hover:     #242424;
+      --bg-thead:         #181818;
       --bg-input:         #1c1c1c;
-      --border:           #2a2a2a;
-      --border-focus:     #707070;
-      --text-primary:     #f0f0f0;
-      --text-secondary:   #a0a0a0;
-      --text-muted:       #555555;
+      --border:           #3a3a3a;
+      --border-focus:     #b8b8b8;
+      --text-primary:     #f7f7f7;
+      --text-secondary:   #d1d1d1;
+      --text-muted:       #a8a8a8;
       --amount-col:       #4ade80;
       --amount-rem:       #f87171;
-      --days-col:         #c0c0c0;
+      --days-col:         #e0e0e0;
       --stat-collect:     #f87171;
       --btn-bg:           #1e1e1e;
-      --btn-hover:        #2e2e2e;
-      --btn-border:       #3a3a3a;
-      --divider:          rgba(255,255,255,.05);
+      --btn-hover:        #303030;
+      --btn-border:       #4a4a4a;
+      --divider:          rgba(255,255,255,.09);
       --shadow-card:      0 4px 24px rgba(0,0,0,.55);
       --toggle-knob:      #f0f0f0;
-      --toggle-track:     #2a2a2a;
+      --toggle-track:     #3a3a3a;
       --page-active-bg:   #f0f0f0;
       --page-active-txt:  #0a0a0a;
       --sort-hi:          #f0f0f0;
@@ -102,6 +103,7 @@
       flex-wrap: wrap;
     }
     .header-left h1 {
+      font-family: var(--font-inter);
       font-size: 1.875rem;
       font-weight: 700;
       letter-spacing: -0.03em;
@@ -109,6 +111,7 @@
       line-height: 1.2;
     }
     .header-left p {
+      font-family: var(--font-inter);
       font-size: 0.8125rem;
       color: var(--text-muted);
       margin-top: 0.375rem;
@@ -238,7 +241,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       color: var(--text-primary);
-      font-family: var(--font-head);
+      font-family: var(--font-inter);
       font-size: 0.8125rem;
       padding: 0.5rem 0.875rem;
       outline: none;
@@ -258,7 +261,7 @@
       font-size: 0.75rem;
       color: var(--text-muted);
       margin-left: auto;
-      font-family: var(--font-mono);
+      font-family: var(--font-inter);
     }
 
     /* TABLE CARD */
@@ -270,9 +273,14 @@
       overflow: hidden;
       transition: background var(--transition), border-color var(--transition);
     }
-    .table-scroll { width: 100%; }
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     table {
       width: 100%;
+      min-width: 980px;
       border-collapse: collapse;
       font-size: 0.8125rem;
       table-layout: auto;
@@ -293,6 +301,7 @@
       user-select: none;
       transition: color var(--transition);
     }
+    th:nth-child(-n+3) { font-family: var(--font-inter); }
     th.sortable { cursor: pointer; }
     th.sortable:hover { color: var(--text-secondary); }
     th.sort-asc::after  { content: ' ↑'; color: var(--sort-hi); }
@@ -314,9 +323,9 @@
     td.align-right { text-align: right; }
 
     /* CELL TYPES */
-    .cell-deal  { font-weight: 600; color: var(--text-primary); }
-    .cell-cons  { color: var(--text-secondary); }
-    .cell-prod  { color: var(--text-primary); font-size: 0.8125rem; }
+    .cell-deal  { font-family: var(--font-inter); font-weight: 600; color: var(--text-primary); }
+    .cell-cons  { font-family: var(--font-inter); color: var(--text-secondary); }
+    .cell-prod  { font-family: var(--font-inter); color: var(--text-primary); font-size: 0.8125rem; }
     .cell-dep   { color: var(--amount-col); font-weight: 600; font-family: var(--font-mono); font-size: 0.8125rem; }
     .cell-rem   { color: var(--amount-rem); font-family: var(--font-mono); font-size: 0.8125rem; }
     .cell-date  { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; }
@@ -324,7 +333,7 @@
 
     /* SKELETON */
     .state-row td { padding: 3rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
-    .state-row.error td { color: #888; }
+    .state-row.error td { color: var(--text-secondary); }
     .skel { height: 14px; border-radius: 4px; background: var(--border); animation: pulse 1.4s ease-in-out infinite; }
 
     /* PAGINATION */
@@ -363,15 +372,23 @@
     }
 
     /* AUTHENTICATION STYLE LAYER */
+    #auth-view {
+      min-height: calc(100vh - 9rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #auth-view[style*="display: none"] { display: none !important; }
     .auth-panel {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
       padding: 2.5rem;
+      width: 100%;
       max-width: 420px;
-      margin: 4rem auto;
       box-shadow: var(--shadow-card);
       text-align: center;
+      transform: translateY(-2.5rem);
       transition: background var(--transition), border-color var(--transition);
     }
     .auth-title {
@@ -476,7 +493,7 @@
       
       <div>
         <label class="auth-field-label">Corporate Email Address</label>
-        <input type="email" id="email-input" placeholder="name@briancha.com" class="auth-input">
+        <input type="email" id="email-input" placeholder="name@briancha.com/ heroladies.com/ moofit.com" class="auth-input">
         <button onclick="handleLogin()" id="login-btn" class="auth-btn">Request Secure Access Link</button>
       </div>
       <div id="auth-feedback" class="auth-feedback"></div>
@@ -606,7 +623,7 @@ sb.auth.onAuthStateChange((event, session) => {
     dashboardView.style.display = "none";
     refreshBtn.style.display = "none";
     logoutBtn.style.display = "none";
-    authView.style.display = "block";
+    authView.style.display = "flex";
     
     // Reset view variables securely
     document.getElementById("email-input").value = "";
