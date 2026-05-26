@@ -635,12 +635,12 @@ async function handleLogin() {
   feedback.textContent = "Processing authorization link...";
 
   // Enforces absolute string mapping for modern web routing engines
-  const myExactTrackerUrl = "https://mooofit.github.io/hubspot-outstanding-deposits/";
+  const exactCurrentUrl = window.location.origin + window.location.pathname;
 
   const { error } = await sb.auth.signInWithOtp({
     email: email,
     options: { 
-      redirectTo: myExactTrackerUrl
+      redirectTo: exactCurrentUrl
     }
   });
 
